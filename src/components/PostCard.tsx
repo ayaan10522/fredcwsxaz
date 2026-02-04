@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Heart, Bookmark, ExternalLink, Clock, AlertTriangle, MessageSquare, Share2, Send } from 'lucide-react';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Heart, Bookmark, ExternalLink, Clock, AlertTriangle } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
-import { likePost, unlikePost, savePost, unsavePost, hasLikedPost, hasSavedPost, addComment, getCommentsForPost, type CommentData } from '@/lib/firebase';
+import { likePost, unlikePost, savePost, unsavePost, hasLikedPost, hasSavedPost } from '@/lib/firebase';
 import type { Post, PostCategory } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
@@ -43,10 +42,6 @@ export function PostCard({ post }: PostCardProps) {
   const [isSaved, setIsSaved] = useState(false);
   const [likes, setLikes] = useState(post.likes);
   const [isLoading, setIsLoading] = useState(false);
-  const [showComments, setShowComments] = useState(false);
-  const [comments, setComments] = useState<CommentData[]>([]);
-  const [newComment, setNewComment] = useState('');
-  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -54,16 +49,7 @@ export function PostCard({ post }: PostCardProps) {
     }
   }, [user, post.id]);
 
-  useEffect(() => {
-    if (showComments) {
-      loadComments();
-    }
-  }, [showComments, post.id]);
-
-  const loadComments = async () => {
-    const fetchedComments = await getCommentsForPost(post.id);
-    setComments(fetchedComments);
-  };
+ 
 
   const checkStatus = async () => {
     if (!user) return;
@@ -120,60 +106,6 @@ export function PostCard({ post }: PostCardProps) {
       console.error('Failed to toggle save:', error);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleShare = async () => {
-    const shareData = {
-      title: `Post from ${post.schoolName}`,
-      text: post.content,
-      url: window.location.href,
-    };
-
-    try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(window.location.href);
-        toast({
-          title: "Link copied",
-          description: "Post link copied to clipboard.",
-        });
-      }
-    } catch (err) {
-      console.error('Error sharing:', err);
-    }
-  };
-
-  const handleSubmitComment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !newComment.trim() || isSubmittingComment) return;
-
-    setIsSubmittingComment(true);
-    try {
-      const comment = await addComment({
-        userId: user.id,
-        userName: user.userType === 'school' ? (user.schoolName || user.name) : user.name,
-        userPhotoUrl: user.profilePhotoUrl,
-        postId: post.id,
-        content: newComment.trim(),
-      });
-      
-      setComments(prev => [comment, ...prev]);
-      setNewComment('');
-      toast({
-        title: "Comment added",
-        description: "Your comment has been posted successfully.",
-      });
-    } catch (error) {
-      console.error('Failed to add comment:', error);
-      toast({
-        title: "Error",
-        description: "Failed to post comment. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmittingComment(false);
     }
   };
 
